@@ -10,6 +10,7 @@ C2::C2(volatile uint8_t *port, volatile uint8_t *ddr, volatile uint8_t *pin, uin
   _ddr = ddr;
   _pin = pin;
 
+  _pinCk_num = 0;
   _pinCk = pinCk;
   _pinD = pinD;
   _pinLed = pinLed;
@@ -19,11 +20,12 @@ C2::C2(volatile uint8_t *port, volatile uint8_t *ddr, volatile uint8_t *pin, uin
 }
 
 void C2::setup() {
-  Serial.begin(1000000);
+  // Serial.begin(1000000);
 
   *_ddr = 0x00 | (1 << _pinD) | (1 << _pinCk);
   *_port = 0x00 | (1 << _pinCk);
-
+  
+  pinMode(_pinLed, OUTPUT);
   digitalWrite(_pinLed, LOW);
 }
 
@@ -476,7 +478,33 @@ void C2::loop() {
           Serial.write(0x88);
           Serial.write(device.id);
           Serial.write(device.revision);
-        }
+        } break;
+
+        case Actions::CHANGE_CLK: {
+          _pinCk_num = _message[2];
+          if (_pinCk_num>3) _pinCk_num = 0;
+          switch(_pinCk_num) {
+            case 0:
+              _pinCk = C2CK_PIN1;
+              break;
+            case 1:
+              _pinCk = C2CK_PIN2;
+              break;
+            case 2:
+              _pinCk = C2CK_PIN3;
+              break;
+            case 3:
+              _pinCk = C2CK_PIN4;
+              break;
+          }
+          
+          *_ddr = 0x00 | (1 << _pinD) | (1 << _pinCk);
+          *_port = 0x00 | (1 << _pinCk);
+          resetState();
+
+          Serial.write(0x89);
+          Serial.write(_pinCk_num);
+        } break;
       }
     }
   }
