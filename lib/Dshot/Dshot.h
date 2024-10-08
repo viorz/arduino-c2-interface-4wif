@@ -13,13 +13,13 @@ class Dshot {
   public:
     Dshot(bool inverted);
 
-    uint16_t buildFrame(uint16_t value, byte telemetry);
-    uint8_t calculateCrc(uint16_t value);
+    uint16_t buildFrame(uint16_t value, byte telemetry, bool inv);
+    uint8_t calculateCrc(uint16_t value, bool inv);
     uint8_t revertMapping(uint16_t value);
     uint16_t mapTo16Bit(uint32_t value);
 
   private:
-    bool _inverted;
+    bool _inverted = false;
 
     // Bit Masks for a Dshot frame
     const byte _crcMask = 0x0F;
