@@ -1,4 +1,4 @@
-#include "Arduino.h"
+#include <Arduino.h>
 #include "Dshot.h"
 #include "C2.h"
 
@@ -23,15 +23,22 @@
  * still struggle to serial print the results.
  */
 const FREQUENCY frequency = F500;
-
+#define MIN_PWM_TIME_US 950
+#define MAX_PWM_TIME_US 2050
 // Set inverted to true if you want bi-directional DShot
-#define inverted true
+#define inverted false
 
 // Enable Extended Dshot Telemetry
-bool enableEdt = true;
+bool enableEdt = false;
 
 // DSHOT Output pin
-const uint8_t pinDshot = 8;
+// const uint8_t pinDshot = 13;
+// #define PIN_DISHOT_B_1  B00100000
+// #define PIN_DISHOT_B_0  B00000000
+const uint8_t pinDshot = 3;
+#define PIN_DISHOT_B_1  B00001000
+#define PIN_DISHOT_B_0  B00000000
+#define PORT_DISHOT     PORTD
 
 /**
  * If debug mode is enabled, more information is printed to the serial console:
@@ -51,9 +58,9 @@ const uint8_t pinDshot = 8;
 #define debug false
 
 // If this pin is pulled low, then the device starts in C2 interface mode
-#define C2_ENABLE_PIN 13
+// #define C2_ENABLE_PIN 13
 
-/*
+
 // When using Port B, make sure to remap the C2_ENABLE_PIN to a different port
 // Port definitions for Port B
 #define C2_PORT PORTB
@@ -62,17 +69,17 @@ const uint8_t pinDshot = 8;
 
 // Pin 0-7 for the given port
 #define C2D_PIN  4 // D12
-#define C2CK_PIN 3 // D11
-*/
+//#define C2CK_PIN 3 // D11
 
+/*
 // Port definitions for Port D
 #define C2_PORT PORTD
 #define C2_DDR DDRD
 #define C2_PIN PIND
 
-/* Pin 0-7 for the given port */
+// Pin 0-7 for the given port 
 #define C2D_PIN  2 // D2
-#define C2CK_PIN 3 // D3
+#define C2CK_PIN 3 // D3*/
 
 /* Initialization */
 uint32_t dshotResponse = 0;
@@ -90,7 +97,9 @@ uint16_t successPackets = 0;
 bool newResponse = false;
 bool hasEsc = false;
 
-bool c2Mode = false;
+bool c2Mode = true;
+bool dShotMode = false;
+bool pwmMode = false;
 C2 *c2;
 
 // Duration LUT - considerably faster than division
@@ -123,7 +132,7 @@ const uint8_t duration[] = {
 };
 
 Dshot dshot = new Dshot(inverted);
-volatile uint16_t frame = dshot.buildFrame(0, 0);
+volatile uint16_t frame = dshot.buildFrame(0, 0, inverted);
 
 volatile uint8_t edtTemperature = 0;
 volatile uint8_t edtVoltage = 0;
@@ -249,17 +258,17 @@ void sendDshot300Frame() {
  */
 void sendInvertedDshot300Bit(uint8_t bit) {
   if(bit) {
-    PORTB = B00000000;
+    PORT_DISHOT = PIN_DISHOT_B_0;
     //DELAY_CYCLES(40);
     DELAY_CYCLES(37);
-    PORTB = B00000001;
+    PORT_DISHOT = PIN_DISHOT_B_1;
     //DELAY_CYCLES(13);
     DELAY_CYCLES(7);
   } else {
-    PORTB = B00000000;
+    PORT_DISHOT = PIN_DISHOT_B_0;
     //DELAY_CYCLES(20);
     DELAY_CYCLES(16);
-    PORTB = B00000001;
+    PORT_DISHOT = PIN_DISHOT_B_1;
     //DELAY_CYCLES(33);
     DELAY_CYCLES(25);
   }
@@ -267,17 +276,17 @@ void sendInvertedDshot300Bit(uint8_t bit) {
 
 void sendDshot300Bit(uint8_t bit) {
   if(bit) {
-    PORTB = B00000001;
+    PORT_DISHOT = PIN_DISHOT_B_1;
     //DELAY_CYCLES(40);
     DELAY_CYCLES(37);
-    PORTB = B00000000;
+    PORT_DISHOT = PIN_DISHOT_B_0;
     //DELAY_CYCLES(13);
     DELAY_CYCLES(7);
   } else {
-    PORTB = B00000001;
+    PORT_DISHOT = PIN_DISHOT_B_1;
     //DELAY_CYCLES(20);
     DELAY_CYCLES(16);
-    PORTB = B00000000;
+    PORT_DISHOT = PIN_DISHOT_B_0;
     //DELAY_CYCLES(33);
     DELAY_CYCLES(25);
   }
@@ -328,26 +337,50 @@ void setupTimer() {
   sei();
 }
 
-ISR(TIMER2_COMPA_vect) {
-  sendDshot300Frame();
+void setupTimerPWM() {
+  cli();
 
-  #if inverted
-    processTelemetryResponse();
-    newResponse = true;
-  #endif
+  TCCR2A = 0;
+  TCCR2B = 0;
+  TCNT2 = 0;
+  // 500 Hz (16000000/((124 + 1) * 256))
+  OCR2A = 255;
+  TCCR2B |= 0b00000111; // Prescaler 256
+
+  TCCR2A |= 0b00001010; // CTC mode - count to OCR2A
+  TIMSK2 = 0b00000010; // Enable INT on compare match A
+
+  sei();
+}
+
+ISR(TIMER2_COMPA_vect) {
+  if(dShotMode) {
+    sendDshot300Frame();
+
+    #if inverted
+      processTelemetryResponse();
+      newResponse = true;
+    #endif
+  }
+  else if (pwmMode) {
+    PORT_DISHOT = PIN_DISHOT_B_1;
+    delayMicroseconds(frame);
+    // DELAY_CYCLES(frame);
+    PORT_DISHOT = PIN_DISHOT_B_0;
+  }
 }
 
 void dshotSetup() {
-  Serial.begin(115200);
+  // Serial.begin(1000000);
   while(!Serial);
 
   pinMode(pinDshot, OUTPUT);
 
   // Set the default signal Level
   #if inverted
-    PORTB = B00000001;
+    PORT_DISHOT = PIN_DISHOT_B_1;
   #else
-    PORTB = B00000000;
+    PORT_DISHOT = PIN_DISHOT_B_0;
   #endif
 
   #if debug
@@ -368,6 +401,16 @@ void dshotSetup() {
   setupTimer();
 }
 
+void pwmSetup() {
+  // Serial.begin(1000000);
+  while(!Serial);
+
+  pinMode(pinDshot, OUTPUT);
+  frame = MIN_PWM_TIME_US;
+  setupTimerPWM();
+
+}
+
 void readUpdate() {
   // Serial read might not always trigger properly here since the timer might interrupt
   // Disabling the interrupts is not an option since Serial uses interrupts too.
@@ -378,7 +421,7 @@ void readUpdate() {
     if(dshotValue > 2047) {
       dshotValue = 2047;
     }
-    frame = dshot.buildFrame(dshotValue, 0);
+    frame = dshot.buildFrame(dshotValue, 0, inverted);
 
     if(dshotValue == 13) {
       /**
@@ -386,13 +429,34 @@ void readUpdate() {
        * to enable EDT. But sending it at least 6 times does not have any side
        * effect, so we just send it until a proper throttle value is provided.
        */
-      frame = dshot.buildFrame(13, 1);
+      frame = dshot.buildFrame(13, 1, inverted);
     }
 
     Serial.print("> Frame: ");
     Serial.print(frame, BIN);
     Serial.print(" Value: ");
     Serial.println(dshotValue);
+  }
+}
+
+void readUpdatePWM() {
+  // Serial read might not always trigger properly here since the timer might interrupt
+  // Disabling the interrupts is not an option since Serial uses interrupts too.
+  if(Serial.available() > 0) {
+    uint16_t pwmValue = Serial.parseInt(SKIP_NONE);
+    Serial.read();
+
+    if(pwmValue > MAX_PWM_TIME_US) {
+      pwmValue = MAX_PWM_TIME_US;
+    }
+
+    if(pwmValue < MIN_PWM_TIME_US) {
+      pwmValue = MIN_PWM_TIME_US;
+    }
+    frame = pwmValue;
+
+    Serial.print(" Value: ");
+    Serial.println(pwmValue);
   }
 }
 
@@ -403,7 +467,7 @@ void printResponse() {
     uint16_t mapped = dshot.mapTo16Bit(dshotResponse);
     uint8_t crc = mapped & 0x0F;
     uint16_t value = mapped >> 4;
-    uint8_t crcExpected = dshot.calculateCrc(value);
+    uint8_t crcExpected = dshot.calculateCrc(value, inverted);
 
     //Serial.println(mapped, BIN);
     //Serial.print(value, BIN);
@@ -523,21 +587,66 @@ void dshotLoop() {
   printResponse();
 }
 
+void pwmLoop() {
+  readUpdatePWM();
+}
+
 void c2Setup() {
-  c2 = new C2(&C2_PORT, &C2_DDR, &C2_PIN, (uint8_t) C2CK_PIN, (uint8_t) C2D_PIN, (uint8_t) LED_BUILTIN);
+  pinMode(pinDshot, INPUT);
+  c2 = new C2(&C2_PORT, &C2_DDR, &C2_PIN, (uint8_t) C2CK_PIN1, (uint8_t) C2D_PIN, (uint8_t) LED_BUILTIN);
   c2->setup();
 }
 
 void setup() {
-  pinMode(C2_ENABLE_PIN, INPUT_PULLUP);
-  c2Mode = !digitalRead(C2_ENABLE_PIN);
+  Serial.begin(1000000);
+  while(!Serial);
+  while(!Serial.available());
+  uint8_t data = Serial.read();
+  switch(data) {
+    case 1: {
+      c2Mode = true;
+      dShotMode = false;
+      pwmMode = false;
+      // Serial.println("C2 mode");
+      Serial.write(0x01);
+    } break;
+    case 2: {
+      c2Mode = false;
+      dShotMode = true;
+      pwmMode = false;
+      // Serial.println("DShot mode");
+      Serial.write(0x02);
+    } break;
+    case 3: {
+      c2Mode = false;
+      dShotMode = false;
+      pwmMode = true;
+      // Serial.println("PWM mode");
+      Serial.write(0x03);
+    } break;
+    default: {
+      c2Mode = false;
+      dShotMode = false;
+      pwmMode = false;
+      // Serial.println("Unknown mode");
+      Serial.write(0x04);
+    } break;
+  }
 
   if(c2Mode) {
     c2Setup();
     return;
   }
 
-  dshotSetup();
+  else if(dShotMode) {
+    dshotSetup();
+    return;
+  }
+
+  else if(pwmMode) {
+    pwmSetup();
+    return;
+  }
 }
 
 void loop() {
@@ -545,6 +654,12 @@ void loop() {
     c2->loop();
     return;
   }
-
-  dshotLoop();
+  else if(dShotMode) {
+    dshotLoop();
+    return;
+  }
+  else if(pwmMode) {
+    pwmLoop();
+    return;
+  }
 }
