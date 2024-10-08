@@ -5,19 +5,19 @@ Dshot::Dshot(bool inverted) {
   _inverted = inverted;
 }
 
-uint8_t Dshot::calculateCrc(uint16_t value) {
-  if(_inverted) {
+uint8_t Dshot::calculateCrc(uint16_t value, bool inv) {
+  if(inv) {
     return ~(value ^ (value >> 4) ^ (value >> 8)) & _crcMask;
   }
 
   return (value ^ (value >> 4) ^ (value >> 8)) & _crcMask;
 }
 
-uint16_t Dshot::buildFrame(uint16_t value, byte telemetry) {
+uint16_t Dshot::buildFrame(uint16_t value, byte telemetry, bool inv) {
   uint16_t frame = 0x00;
   frame |= (value << 5) & _valueMask;
   frame |= (telemetry << 4) & _telemetryMask;
-  frame |= calculateCrc(frame >> 4);
+  frame |= calculateCrc(frame >> 4, inv);
 
   return frame;
 }
