@@ -3,6 +3,11 @@
 #ifndef C2_H
 #define C2_H
 
+#define C2CK_PIN1 3 // D11
+#define C2CK_PIN2 2 // D10
+#define C2CK_PIN3 1 // D9
+#define C2CK_PIN4 0 // D8
+
 enum C2Instruction {
   DATA_READ     = 0x00,
   DATA_WRITE    = 0x01,
@@ -36,7 +41,8 @@ enum Actions {
   WRITE = 0x03,
   ERASE = 0x04,
   READ  = 0x05,
-  INFO  = 0x08
+  INFO  = 0x08,
+  CHANGE_CLK  = 0x09
 };
 
 struct Device {
@@ -98,6 +104,7 @@ class C2 {
     volatile uint8_t *_ddr;
     volatile uint8_t *_pin;
 
+    uint8_t _pinCk_num;
     uint8_t _pinCk;
     uint8_t _pinD;
     uint8_t _pinLed;
