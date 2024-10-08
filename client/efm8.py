@@ -28,6 +28,7 @@ class ProgrammingInterface:
       try:
         self.serial.write(b"\x01\x00")
         result = self.serial.read(1)
+        print("Error: ", result)
         assert result == b"\x81"
         done = True
       except:
@@ -65,6 +66,23 @@ class ProgrammingInterface:
 
       else:
         break
+
+  def setC2Mode(self):
+    self.serial.write(b"\x01")
+    rxdataa = self.serial.read(1)
+    print("C2 mode is set ", rxdataa)
+    assert rxdataa == b"\x01"
+
+  def changeClk(self, i):
+    self.serial.write(b"\x09\x01")
+    iList = bytes([i])
+    self.serial.write(iList)
+    # assert self.serial.read(1) == b"\x89"
+    rxdataa = self.serial.read(1)
+    print("Change CLK pin ", rxdataa)
+    assert rxdataa == b"\x89"
+    iChange = self.serial.read(1)
+    print("Clk is set to", iChange)
 
   def erase(self):
     self.serial.write(b"\x04\x00")
@@ -128,36 +146,42 @@ parser.add_argument('destination', metavar='DESTINATION', type=str, nargs='?', d
 
 args = parser.parse_args()
 interface = ProgrammingInterface(args.port)
-interface.initialize()
-interface.deviceInfo()
 
-if args.action == 'read':
-  if not args.destination:
-    parser.print_usage()
-    parser.exit()
+interface.setC2Mode();
+for i in range(4):
+  interface.changeClk(i)
+  interface.reset()
+  interface.initialize()
+  interface.deviceInfo()
 
-  file = open(args.destination, "w")
+  if args.action == 'read':
+    if not args.destination:
+      parser.print_usage()
+      parser.exit()
 
-  # Fetch the flash segment
-  interface.read(file, 0, 0x3FFF)
+    file = open(args.destination, "w")
 
-  # Reading the bootloader on BB51 does not seem to bepossible since we are not
-  # getting a response from this address space
-  # TODO: Fetch the bootloader on BB51
-  # if args.mcu == 'BB51':
-  #  interface.read(file, 0xF000, 0x0800)
+    # Fetch the flash segment
+    interface.read(file, 0, 0x3FFF)
 
-  file.write(":00000001FF\n")
+    # Reading the bootloader on BB51 does not seem to bepossible since we are not
+    # getting a response from this address space
+    # TODO: Fetch the bootloader on BB51
+    # if args.mcu == 'BB51':
+    #  interface.read(file, 0xF000, 0x0800)
 
-if args.action == 'erase':
-  interface.erase()
+    file.write(":00000001FF\n")
 
-if args.action == 'write':
-  if not args.destination:
-    parser.print_usage()
-    parser.exit()
+  if args.action == 'erase':
+    interface.erase()
 
-  file = open(args.destination, "r")
+  if args.action == 'write':
+    if not args.destination:
+      parser.print_usage()
+      parser.exit()
 
-  interface.erase()
-  interface.write(file)
+    file = open(args.destination, "r")
+
+    # for i in range(4):
+    interface.erase()
+    interface.write(file)
