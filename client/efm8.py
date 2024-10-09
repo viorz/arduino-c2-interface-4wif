@@ -21,7 +21,7 @@ class ProgrammingInterface:
         address & 0xFF,
         0x00,
     ]
-
+  
   def initialize(self):
     done = False
     while not done:
@@ -36,6 +36,7 @@ class ProgrammingInterface:
         sys.exit(1)
 
     print("Connected to interface")
+    return True
 
   def read(self, file, start=0x00, size=0x3FFF, chunksize=0x10):
     for address in range(start, start + size, chunksize):
@@ -66,47 +67,64 @@ class ProgrammingInterface:
 
       else:
         break
+    return True
 
   def setC2Mode(self):
     self.serial.write(b"\x01")
     rxdataa = self.serial.read(1)
     print("C2 mode is set ", rxdataa)
-    assert rxdataa == b"\x01"
-
+    # assert rxdataa == b"\x01"
+    if rxdataa != b"\x01": return False
+    return True
+  
   def changeClk(self, i):
     self.serial.write(b"\x09\x01")
     iList = bytes([i])
     self.serial.write(iList)
-    # assert self.serial.read(1) == b"\x89"
     rxdataa = self.serial.read(1)
     print("Change CLK pin ", rxdataa)
-    assert rxdataa == b"\x89"
+    # assert rxdataa == b"\x89"
+    if rxdataa != b"\x89": return False
     iChange = self.serial.read(1)
     print("Clk is set to", iChange)
+    return True
 
   def erase(self):
     self.serial.write(b"\x04\x00")
-    assert self.serial.read(1) == b"\x84"
+    # assert self.serial.read(1) == b"\x84"
+    if self.serial.read(1) != b"\x84": return False
     print("Device erased")
+    return True
 
   def reset(self):
     self.serial.write(b"\x02\x00")
-    assert self.serial.read(1) == b"\x82"
+    # assert self.serial.read(1) == b"\x82"
+    if self.serial.read(1) != b"\x82": return False
+    return True
 
   def write(self, file):
     lines = file.readlines()
     for line in lines:
-      assert line[0] == ":"
+      # assert line[0] == ":"
+      if line[0] != ":": 
+        print("line[0] != :")
+        return False
       if line[7:9] != "00":
         continue
 
       length = int(line[1:3], 16)
-      assert length + 4 < 256
+      # assert length + 4 < 256
+      if length + 4 >= 256: 
+        print("length + 4 >= 256")
+        return False
 
       addressHi = int(line[3:5], 16)
       addressLo = int(line[5:7], 16)
       data = bytearray.fromhex(line[9 : 9 + length * 2])
-      assert len(data) == length
+      # assert len(data) == length
+      if len(data) != length: 
+        print("len(data) != length")
+        return False
       crc = addressHi + addressLo
       for i in range(len(data)):
         crc += data[i]
@@ -122,66 +140,100 @@ class ProgrammingInterface:
       if response != b"\x83":
           print("Error: Failed writing data")
           return None
+    return True
 
     self.reset()
 
   def deviceInfo(self):
     self.serial.write(b"\x08\x00")
-    assert self.serial.read(1) == b"\x88"
+    # assert self.serial.read(1) == b"\x88"
+    if self.serial.read(1) != b"\x88": return False
     deviceId = self.serial.read(1)
     revision = self.serial.read(1)
     print("Device:   0x%s" % deviceId.hex())
     print("Revision: 0x%s" % revision.hex())
+    return True
 
-parser = argparse.ArgumentParser(description='Interact with the Arduino based EFM8 C2 interface')
-parser.add_argument('action', metavar='ACTION', type=str,
-                    help='Action to perform: read, write or erase',
-                    choices=['read', 'write', 'erase', 'info'],)
-parser.add_argument('port', metavar='PORT', type=str,
-                    help='Port to use')
-parser.add_argument('destination', metavar='DESTINATION', type=str, nargs='?', default=None,
-                    help='Destination to write to or read from')
-#parser.add_argument('-m', '--mcu', type=str, default='BB2', choices=['BB1', 'BB2', 'BB51'],
-#                    help='MCU - important to read full space, including bootloader')
 
-args = parser.parse_args()
-interface = ProgrammingInterface(args.port)
+# __________________PROGRAMM:__________________
 
-interface.setC2Mode();
-for i in range(4):
-  interface.changeClk(i)
-  interface.reset()
-  interface.initialize()
-  interface.deviceInfo()
 
-  if args.action == 'read':
-    if not args.destination:
-      parser.print_usage()
-      parser.exit()
 
-    file = open(args.destination, "w")
+def run():
+  parser = argparse.ArgumentParser(description='Interact with the Arduino based EFM8 C2 interface')
+  parser.add_argument('action', metavar='ACTION', type=str,
+                      help='Action to perform: read, write or erase',
+                      choices=['read', 'write', 'erase', 'info'],)
+  parser.add_argument('port', metavar='PORT', type=str,
+                      help='Port to use')
+  parser.add_argument('destination', metavar='DESTINATION', type=str, nargs='?', default=None,
+                      help='Destination to write to or read from')
+  #parser.add_argument('-m', '--mcu', type=str, default='BB2', choices=['BB1', 'BB2', 'BB51'],
+  #                    help='MCU - important to read full space, including bootloader')
 
-    # Fetch the flash segment
-    interface.read(file, 0, 0x3FFF)
+  args = parser.parse_args()
+  interface = ProgrammingInterface(args.port)
 
-    # Reading the bootloader on BB51 does not seem to bepossible since we are not
-    # getting a response from this address space
-    # TODO: Fetch the bootloader on BB51
-    # if args.mcu == 'BB51':
-    #  interface.read(file, 0xF000, 0x0800)
+  string_status = {0:"Succes",1:"Succes",2:"Succes",3:"Succes"}
+  # status = True
+  if interface.setC2Mode():
+    for i in range(4):
+      if not interface.changeClk(i):
+        string_status[i] = "Arduino can not change CLK"
+        continue
+      if not interface.reset():
+        string_status[i] = "Arduino can not reset mc"
+        continue
+      if not interface.initialize():
+        string_status[i] = "Arduino can not initialize mc"
+        continue
+      if not interface.deviceInfo():
+        string_status[i] = "Arduino can not send device Info"
+        continue
 
-    file.write(":00000001FF\n")
+      if args.action == 'read':
+        if not args.destination:
+          parser.print_usage()
+          parser.exit()
 
-  if args.action == 'erase':
-    interface.erase()
+        file = open(args.destination + str(i) + ".hex", "w")
 
-  if args.action == 'write':
-    if not args.destination:
-      parser.print_usage()
-      parser.exit()
+        # Fetch the flash segment
+        if not interface.read(file, 0, 0x3FFF):
+          string_status[i] = "Arduino can not read mc"
+          continue
 
-    file = open(args.destination, "r")
+        # Reading the bootloader on BB51 does not seem to bepossible since we are not
+        # getting a response from this address space
+        # TODO: Fetch the bootloader on BB51
+        # if args.mcu == 'BB51':
+        #  interface.read(file, 0xF000, 0x0800)
 
-    # for i in range(4):
-    interface.erase()
-    interface.write(file)
+        file.write(":00000001FF\n")
+
+      if args.action == 'erase':
+        if not interface.erase():
+          string_status[i] = "Arduino can not erase mc"
+          continue
+
+      if args.action == 'write':
+        if not args.destination:
+          parser.print_usage()
+          parser.exit()
+
+        file = open(args.destination, "r")
+
+        # for i in range(4):
+        if not interface.erase():
+          string_status[i] = "Arduino can not erase mc"
+        if not interface.write(file):
+          string_status[i] = "Arduino can not programm mc"
+  else:
+    status = False
+    string_status = {0:"Arduino not answered right",1:"Arduino not answered right",2:"Arduino not answered right",3:"Arduino not answered right"}
+    return string_status
+  return string_status
+
+if __name__ == "__main__":
+  status =  run()
+  print(status)
