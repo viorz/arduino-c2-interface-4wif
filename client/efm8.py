@@ -28,7 +28,7 @@ class ProgrammingInterface:
       try:
         self.serial.write(b"\x01\x00")
         result = self.serial.read(1)
-        print("Error: ", result)
+        if result != b"\x81": print("Error: ", result)
         assert result == b"\x81"
         done = True
       except:
@@ -106,25 +106,19 @@ class ProgrammingInterface:
     lines = file.readlines()
     for line in lines:
       # assert line[0] == ":"
-      if line[0] != ":": 
-        print("line[0] != :")
-        return False
+      if line[0] != ":": return False
       if line[7:9] != "00":
         continue
 
       length = int(line[1:3], 16)
       # assert length + 4 < 256
-      if length + 4 >= 256: 
-        print("length + 4 >= 256")
-        return False
+      if length + 4 >= 256: return False
 
       addressHi = int(line[3:5], 16)
       addressLo = int(line[5:7], 16)
       data = bytearray.fromhex(line[9 : 9 + length * 2])
       # assert len(data) == length
-      if len(data) != length: 
-        print("len(data) != length")
-        return False
+      if len(data) != length: return False
       crc = addressHi + addressLo
       for i in range(len(data)):
         crc += data[i]
@@ -156,8 +150,6 @@ class ProgrammingInterface:
 
 
 # __________________PROGRAMM:__________________
-
-
 
 def run():
   parser = argparse.ArgumentParser(description='Interact with the Arduino based EFM8 C2 interface')
