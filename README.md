@@ -72,6 +72,24 @@ python efm8.py write /dev/ttyUSB0 input.hex
 python efm8.py erase /dev/ttyUSB0
 ```
 
+### Installing python EFM8 client from Windows
+install python from official website
+open command line:
+```
+py -m pip install pyserial
+```
+
+go to folder:
+```
+cd arduino-c2-interface-4wif\client
+```
+
+use client:
+```
+py efm8.py info COM3
+```
+
+
 ## Compatibility
 This should work on any Arduino Uno or clone running at 16MHz. If you are using a different Arduino board, make sure you are using (and setting) the pin which has the "Input Capture" functionality.
 
