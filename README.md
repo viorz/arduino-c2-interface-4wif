@@ -77,6 +77,7 @@ install python from official website
 open command line:
 ```
 py -m pip install pyserial
+py -m pip install PyQt5
 ```
 
 go to folder:
