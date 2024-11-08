@@ -88,6 +88,11 @@ cd arduino-c2-interface-4wif\client
 use client:
 ```
 py efm8.py info COM3
+````
+
+use GUI client:
+```
+py GuIToProgrammEFM8.py
 ```
 
 
