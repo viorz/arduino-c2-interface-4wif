@@ -411,6 +411,11 @@ void pwmSetup() {
 
 }
 
+void disableMotor() {
+  frame = 0;
+  pinMode(pinDshot, INPUT);
+}
+
 void readUpdate() {
   // Serial read might not always trigger properly here since the timer might interrupt
   // Disabling the interrupts is not an option since Serial uses interrupts too.
@@ -439,6 +444,22 @@ void readUpdate() {
   }
 }
 
+void UpdateDShot(uint16_t dshotValue) {
+  if(dshotValue > 2047) {
+    dshotValue = 2047;
+  }
+  frame = dshot.buildFrame(dshotValue, 0, inverted);
+
+  if(dshotValue == 13) {
+    /**
+     * Lazy solution: Technically this command should be sent exactly six times
+     * to enable EDT. But sending it at least 6 times does not have any side
+     * effect, so we just send it until a proper throttle value is provided.
+     */
+    frame = dshot.buildFrame(13, 1, inverted);
+  }
+}
+
 void readUpdatePWM() {
   // Serial read might not always trigger properly here since the timer might interrupt
   // Disabling the interrupts is not an option since Serial uses interrupts too.
@@ -458,6 +479,17 @@ void readUpdatePWM() {
     Serial.print(" Value: ");
     Serial.println(pwmValue);
   }
+}
+
+void UpdatePWM(uint16_t pwmValue) {
+  if(pwmValue > MAX_PWM_TIME_US) {
+    pwmValue = MAX_PWM_TIME_US;
+  }
+
+  if(pwmValue < MIN_PWM_TIME_US) {
+    pwmValue = MIN_PWM_TIME_US;
+  }
+  frame = pwmValue;
 }
 
 void printResponse() {
@@ -600,66 +632,66 @@ void c2Setup() {
 void setup() {
   Serial.begin(1000000);
   while(!Serial);
-  while(!Serial.available());
-  uint8_t data = Serial.read();
-  switch(data) {
-    case 1: {
-      c2Mode = true;
-      dShotMode = false;
-      pwmMode = false;
-      // Serial.println("C2 mode");
-      Serial.write(0x01);
-    } break;
-    case 2: {
-      c2Mode = false;
-      dShotMode = true;
-      pwmMode = false;
-      // Serial.println("DShot mode");
-      Serial.write(0x02);
-    } break;
-    case 3: {
-      c2Mode = false;
-      dShotMode = false;
-      pwmMode = true;
-      // Serial.println("PWM mode");
-      Serial.write(0x03);
-    } break;
-    default: {
-      c2Mode = false;
-      dShotMode = false;
-      pwmMode = false;
-      // Serial.println("Unknown mode");
-      Serial.write(0x04);
-    } break;
-  }
+  // while(!Serial.available());
+  // uint8_t data = Serial.read();
+  // switch(data) {
+  //   case 1: {
+  //     c2Mode = true;
+  //     dShotMode = false;
+  //     pwmMode = false;
+  //     // Serial.println("C2 mode");
+  //     Serial.write(0x01);
+  //   } break;
+  //   case 2: {
+  //     c2Mode = false;
+  //     dShotMode = true;
+  //     pwmMode = false;
+  //     // Serial.println("DShot mode");
+  //     Serial.write(0x02);
+  //   } break;
+  //   case 3: {
+  //     c2Mode = false;
+  //     dShotMode = false;
+  //     pwmMode = true;
+  //     // Serial.println("PWM mode");
+  //     Serial.write(0x03);
+  //   } break;
+  //   default: {
+  //     c2Mode = false;
+  //     dShotMode = false;
+  //     pwmMode = false;
+  //     // Serial.println("Unknown mode");
+  //     Serial.write(0x04);
+  //   } break;
+  // }
 
-  if(c2Mode) {
+  // if(c2Mode) {
     c2Setup();
-    return;
-  }
+  //   return;
+  // }
 
-  else if(dShotMode) {
-    dshotSetup();
-    return;
-  }
+  // else if(dShotMode) {
+  //   dshotSetup();
+  //   return;
+  // }
 
-  else if(pwmMode) {
-    pwmSetup();
-    return;
-  }
+  // else if(pwmMode) {
+  //   pwmSetup();
+  //   return;
+  // }
 }
 
 void loop() {
-  if(c2Mode) {
+  // if(c2Mode) {
     c2->loop();
-    return;
-  }
-  else if(dShotMode) {
-    dshotLoop();
-    return;
-  }
-  else if(pwmMode) {
-    pwmLoop();
-    return;
-  }
+  //   return;
+  // }
+  // else if(dShotMode) {
+  //   dshotLoop();
+  //   return;
+  // }
+  // else if(pwmMode) {
+  //   pwmLoop();
+  //   return;
+  // }
 }
