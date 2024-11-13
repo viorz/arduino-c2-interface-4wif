@@ -187,97 +187,97 @@ class ProgrammingInterface:
     return True
 
 
-# __________________PROGRAMM:__________________
+# # __________________PROGRAMM:__________________
 
-def run(action, destination, port):
-#   parser = argparse.ArgumentParser(description='Interact with the Arduino based EFM8 C2 interface')
-#   parser.add_argument('action', metavar='ACTION', type=str,
-#                       help='Action to perform: read, write or erase',
-#                       choices=['read', 'write', 'erase', 'info'],)
-#   parser.add_argument('port', metavar='PORT', type=str,
-#                       help='Port to use')
-#   parser.add_argument('destination', metavar='DESTINATION', type=str, nargs='?', default=None,
-#                       help='Destination to write to or read from')
-#   #parser.add_argument('-m', '--mcu', type=str, default='BB2', choices=['BB1', 'BB2', 'BB51'],
-#   #                    help='MCU - important to read full space, including bootloader')
+# def run(action, destination, port):
+# #   parser = argparse.ArgumentParser(description='Interact with the Arduino based EFM8 C2 interface')
+# #   parser.add_argument('action', metavar='ACTION', type=str,
+# #                       help='Action to perform: read, write or erase',
+# #                       choices=['read', 'write', 'erase', 'info'],)
+# #   parser.add_argument('port', metavar='PORT', type=str,
+# #                       help='Port to use')
+# #   parser.add_argument('destination', metavar='DESTINATION', type=str, nargs='?', default=None,
+# #                       help='Destination to write to or read from')
+# #   #parser.add_argument('-m', '--mcu', type=str, default='BB2', choices=['BB1', 'BB2', 'BB51'],
+# #   #                    help='MCU - important to read full space, including bootloader')
 
-#   args = parser.parse_args()
-  interface = ProgrammingInterface(port)
-  string_status = {0:"Succes",1:"Succes",2:"Succes",3:"Succes"}
+# #   args = parser.parse_args()
+#   interface = ProgrammingInterface(port)
+#   string_status = {0:"Succes",1:"Succes",2:"Succes",3:"Succes"}
 
-  if interface.setC2Mode():
-    for i in range(4):
-      if not interface.changeClk(i):
-        string_status[i] = "Arduino can not change CLK"
-        continue
-      if not interface.reset():
-        string_status[i] = "Arduino can not reset mc"
-        continue
-      if not interface.initialize():
-        string_status[i] = "Arduino can not initialize mc"
-        continue
-      if not interface.deviceInfo():
-        string_status[i] = "Arduino can not send device Info"
-        continue
+#   if interface.setC2Mode():
+#     for i in range(4):
+#       if not interface.changeClk(i):
+#         string_status[i] = "Arduino can not change CLK"
+#         continue
+#       if not interface.reset():
+#         string_status[i] = "Arduino can not reset mc"
+#         continue
+#       if not interface.initialize():
+#         string_status[i] = "Arduino can not initialize mc"
+#         continue
+#       if not interface.deviceInfo():
+#         string_status[i] = "Arduino can not send device Info"
+#         continue
       
-      if action == 'read':
+#       if action == 'read':
 
-        file = open(destination + str(i) + ".hex", "w")
+#         file = open(destination + str(i) + ".hex", "w")
 
-        # Fetch the flash segment
-        if not interface.read(file, 0, 0x3FFF):
-          string_status[i] = "Arduino can not read mc"
-          continue
+#         # Fetch the flash segment
+#         if not interface.read(file, 0, 0x3FFF):
+#           string_status[i] = "Arduino can not read mc"
+#           continue
 
-        # Reading the bootloader on BB51 does not seem to bepossible since we are not
-        # getting a response from this address space
-        # TODO: Fetch the bootloader on BB51
-        # if args.mcu == 'BB51':
-        #  interface.read(file, 0xF000, 0x0800)
+#         # Reading the bootloader on BB51 does not seem to bepossible since we are not
+#         # getting a response from this address space
+#         # TODO: Fetch the bootloader on BB51
+#         # if args.mcu == 'BB51':
+#         #  interface.read(file, 0xF000, 0x0800)
 
-        file.write(":00000001FF\n")
+#         file.write(":00000001FF\n")
 
-      if action == 'erase':
-        if not interface.erase():
-          string_status[i] = "Arduino can not erase mc"
-          continue
+#       if action == 'erase':
+#         if not interface.erase():
+#           string_status[i] = "Arduino can not erase mc"
+#           continue
 
-      if action == 'write':
-        file = open(destination, "r")
+#       if action == 'write':
+#         file = open(destination, "r")
 
-        # for i in range(4):
-        if not interface.erase():
-          string_status[i] = "Arduino can not erase mc"
-        if not interface.write(file):
-          string_status[i] = "Arduino can not programm mc"
-  else:
-    interface.closeSerial()
-    string_status = {0:"Arduino not answered right",1:"Arduino not answered right",2:"Arduino not answered right",3:"Arduino not answered right"}
-    return string_status
-  print("interface.reset()",interface.reset())
-  interface.closeSerial()
-  return string_status
+#         # for i in range(4):
+#         if not interface.erase():
+#           string_status[i] = "Arduino can not erase mc"
+#         if not interface.write(file):
+#           string_status[i] = "Arduino can not programm mc"
+#   else:
+#     interface.closeSerial()
+#     string_status = {0:"Arduino not answered right",1:"Arduino not answered right",2:"Arduino not answered right",3:"Arduino not answered right"}
+#     return string_status
+#   print("interface.reset()",interface.reset())
+#   interface.closeSerial()
+#   return string_status
 
-def startMotor(mode, value, port):
-  interface = ProgrammingInterface(port)
-  if mode == "dShot":
-     interface.setDShotMode()
-  elif mode == "PWM":
-     interface.setPWMMode()
+# def startMotor(mode, value, port):
+#   interface = ProgrammingInterface(port)
+#   if mode == "dShot":
+#      interface.setDShotMode()
+#   elif mode == "PWM":
+#      interface.setPWMMode()
   
-  print("sleep start")
-  sleep(4)
-  print("sleep stop")
+#   print("sleep start")
+#   sleep(4)
+#   print("sleep stop")
   
-  interface.sendValue(value)
-  interface.closeSerial()
+#   interface.sendValue(value)
+#   interface.closeSerial()
 
-def stopMotor(port):
-  interface = ProgrammingInterface(port)
-  print("sleep start")
-  sleep(1)
-  print("sleep stop")
-  interface.closeSerial()
+# def stopMotor(port):
+#   interface = ProgrammingInterface(port)
+#   print("sleep start")
+#   sleep(1)
+#   print("sleep stop")
+#   interface.closeSerial()
 
 
 
@@ -287,149 +287,239 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     serialRxBufer = ""
 
     def __init__(self, *args, **kwargs):
-        super(ApplicationWindow, self).__init__(*args, **kwargs)
-        self.ui = uic.loadUi("GuIToProgrammEFM8.ui", self)
-        self.ui.setWindowTitle("GuIToProgrammEFM8")
-        # self.ui.setGeometry(300, 250, 1000, 1200)
+      super(ApplicationWindow, self).__init__(*args, **kwargs)
+      self.ui = uic.loadUi("GuIToProgrammEFM8.ui", self)
+      self.ui.setWindowTitle("GuIToProgrammEFM8")
+      # self.ui.setGeometry(300, 250, 1000, 1200)
 
-        parametersApp = {}
-        #Serial port:
-        # serial = QSerialPort()
-        # serial.setBaudRate(1000000)
-        portList = []
-        ports = QSerialPortInfo.availablePorts()
-        for port in ports:
-            portList.append(port.portName())
-            if port.description() == "Arduino Uno":
-               parametersApp["port"] = port.portName()
-        self.ui.comboBox.addItems(portList)
+      parametersApp = {}
+      #Serial port:
+      # serial = QSerialPort()
+      # serial.setBaudRate(1000000)
+      portList = []
+      ports = QSerialPortInfo.availablePorts()
+      for port in ports:
+          portList.append(port.portName())
+          if port.description() == "Arduino Uno":
+              parametersApp["port"] = port.portName()
+      self.ui.comboBox.addItems(portList)
 
-        #Read parameters from file
-        f = open("save.txt", "r")
-        stringF = f.readlines()
-        f.close()
-        for S in stringF:
-            newS = S.split(":", 1)
-            if newS[0] == "port":
-               if parametersApp.get("port") == None:
-                  parametersApp[newS[0]] = newS[1].strip("\n ")
-            else:
-               parametersApp[newS[0]] = newS[1].strip("\n ")
+      #Read parameters from file
+      f = open("save.txt", "r")
+      stringF = f.readlines()
+      f.close()
+      for S in stringF:
+          newS = S.split(":", 1)
+          if newS[0] == "port":
+              if parametersApp.get("port") == None:
+                parametersApp[newS[0]] = newS[1].strip("\n ")
+          else:
+              parametersApp[newS[0]] = newS[1].strip("\n ")
 
-        # if parametersApp.get("port") != None:
-        if parametersApp.get("port") in portList:
-            for i in range(len(portList)):
-                if portList[i] == parametersApp.get("port"):
-                    self.ui.comboBox.setCurrentIndex(self.ui.comboBox.findText(parametersApp.get("port")))
-        if parametersApp.get("mode") == "dShot":
-           self.ui.radioButton_dShot.setChecked(True)
-        elif parametersApp.get("mode") == "PWM":
-           self.ui.radioButton_PWM.setChecked(True)
-        self.ui.spinBox_dShot.setValue(int(parametersApp.get("dShot")))
-        self.ui.spinBox_PWM.setValue(int(parametersApp.get("PWM")))
-        self.ui.horizontalSlider_dShot.setValue(int(parametersApp.get("dShot")))
-        self.ui.horizontalSlider_PWM.setValue(int(parametersApp.get("PWM")))
-        self.ui.lineEdit.setText(parametersApp.get("name"))
+      # if parametersApp.get("port") != None:
+      if parametersApp.get("port") in portList:
+          for i in range(len(portList)):
+              if portList[i] == parametersApp.get("port"):
+                  self.ui.comboBox.setCurrentIndex(self.ui.comboBox.findText(parametersApp.get("port")))
+      if parametersApp.get("mode") == "dShot":
+          self.ui.radioButton_dShot.setChecked(True)
+      elif parametersApp.get("mode") == "PWM":
+          self.ui.radioButton_PWM.setChecked(True)
+      self.ui.spinBox_dShot.setValue(int(parametersApp.get("dShot")))
+      self.ui.spinBox_PWM.setValue(int(parametersApp.get("PWM")))
+      self.ui.horizontalSlider_dShot.setValue(int(parametersApp.get("dShot")))
+      self.ui.horizontalSlider_PWM.setValue(int(parametersApp.get("PWM")))
+      self.ui.lineEdit.setText(parametersApp.get("name"))
 
-
-        # def onRead():
-        #     rx = serial.readAll()
-        #     rxs = str(rx, 'utf-8')
-        #     serialRxBufer = serialRxBufer + rxs
-        #     print("rx",rx)
-        #     print("rxs",rxs)
-
-        def onPushButton_change():
-            parametersApp["name"] = self.ui.lineEdit.text()
-            parametersApp["port"] = self.ui.comboBox.currentText()
-            parametersApp["dShot"] = str(self.ui.spinBox_dShot.value())
-            parametersApp["PWM"] = str(self.ui.spinBox_PWM.value())
-            if self.ui.radioButton_dShot.isChecked():
-                parametersApp["mode"] = "dShot"
-            else: parametersApp["mode"] = "PWM"
-            # serial.setPortName(self.ui.comboBox.currentText())
-            # # serial.open(QIODevice.ReadWrite)
-            # print("serial.open",serial.open(QIODevice.ReadOnly))
+      self.interface = ProgrammingInterface(parametersApp.get("port"))
 
 
-        def onPushButton_save():
-            f = open("save.txt", "w")
-            newS = ""
-            for s in parametersApp:
-                newS = newS + s + ": "+ parametersApp[s] + "\n"
-            f.write(newS)
-            f.close()
-            # # serial.close()
-            # print("serial.close",serial.close())
+      # def onRead():
+      #     rx = serial.readAll()
+      #     rxs = str(rx, 'utf-8')
+      #     serialRxBufer = serialRxBufer + rxs
+      #     print("rx",rx)
+      #     print("rxs",rxs)
 
-        def onPushButton_1():
-            self.ui.label_1.setText("Прошивка")
-            self.ui.label_1.setStyleSheet("background-color: yellow; border: 1px solid black;")
-            self.ui.label_2.setText("Прошивка")
-            self.ui.label_2.setStyleSheet("background-color: yellow; border: 1px solid black;")
-            self.ui.label_3.setText("Прошивка")
-            self.ui.label_3.setStyleSheet("background-color: yellow; border: 1px solid black;")
-            self.ui.label_4.setText("Прошивка")
-            self.ui.label_4.setStyleSheet("background-color: yellow; border: 1px solid black;")
-            print("onPushButton_1")
-            sleep(0.001)
-            status = run(action = "write", destination = parametersApp.get("name"), port = parametersApp.get("port"))
-            print(status)
-            if status.get(0) == "Succes":
-               self.ui.label_1.setText("Прошито")
-               self.ui.label_1.setStyleSheet("background-color: green; border: 1px solid black;")
-            else:
-               self.ui.label_1.setText("Проблема")
-               self.ui.label_1.setStyleSheet("background-color: red; border: 1px solid black;") 
-            if status.get(1) == "Succes":
-               self.ui.label_2.setText("Прошито")
-               self.ui.label_2.setStyleSheet("background-color: green; border: 1px solid black;")
-            else:
-               self.ui.label_2.setText("Проблема")
-               self.ui.label_2.setStyleSheet("background-color: red; border: 1px solid black;") 
-            if status.get(2) == "Succes":
-               self.ui.label_3.setText("Прошито")
-               self.ui.label_3.setStyleSheet("background-color: green; border: 1px solid black;")
-            else:
-               self.ui.label_3.setText("Проблема")
-               self.ui.label_3.setStyleSheet("background-color: red; border: 1px solid black;") 
-            if status.get(3) == "Succes":
-               self.ui.label_4.setText("Прошито")
-               self.ui.label_4.setStyleSheet("background-color: green; border: 1px solid black;")
-            else:
-               self.ui.label_4.setText("Проблема")
-               self.ui.label_4.setStyleSheet("background-color: red; border: 1px solid black;") 
+      
+      # __________________PROGRAMM:__________________
+
+      def run(action, destination, port):
+      #   parser = argparse.ArgumentParser(description='Interact with the Arduino based EFM8 C2 interface')
+      #   parser.add_argument('action', metavar='ACTION', type=str,
+      #                       help='Action to perform: read, write or erase',
+      #                       choices=['read', 'write', 'erase', 'info'],)
+      #   parser.add_argument('port', metavar='PORT', type=str,
+      #                       help='Port to use')
+      #   parser.add_argument('destination', metavar='DESTINATION', type=str, nargs='?', default=None,
+      #                       help='Destination to write to or read from')
+      #   #parser.add_argument('-m', '--mcu', type=str, default='BB2', choices=['BB1', 'BB2', 'BB51'],
+      #   #                    help='MCU - important to read full space, including bootloader')
+
+      #   args = parser.parse_args()
+        # interface = ProgrammingInterface(port)
+        string_status = {0:"Succes",1:"Succes",2:"Succes",3:"Succes"}
+
+        if self.interface.setC2Mode():
+          for i in range(4):
+            if not self.interface.changeClk(i):
+              string_status[i] = "Arduino can not change CLK"
+              continue
+            if not self.interface.reset():
+              string_status[i] = "Arduino can not reset mc"
+              continue
+            if not self.interface.initialize():
+              string_status[i] = "Arduino can not initialize mc"
+              continue
+            if not self.interface.deviceInfo():
+              string_status[i] = "Arduino can not send device Info"
+              continue
+            
+            if action == 'read':
+
+              file = open(destination + str(i) + ".hex", "w")
+
+              # Fetch the flash segment
+              if not self.interface.read(file, 0, 0x3FFF):
+                string_status[i] = "Arduino can not read mc"
+                continue
+
+              # Reading the bootloader on BB51 does not seem to bepossible since we are not
+              # getting a response from this address space
+              # TODO: Fetch the bootloader on BB51
+              # if args.mcu == 'BB51':
+              #  interface.read(file, 0xF000, 0x0800)
+
+              file.write(":00000001FF\n")
+
+            if action == 'erase':
+              if not self.interface.erase():
+                string_status[i] = "Arduino can not erase mc"
+                continue
+
+            if action == 'write':
+              file = open(destination, "r")
+
+              # for i in range(4):
+              if not self.interface.erase():
+                string_status[i] = "Arduino can not erase mc"
+              if not self.interface.write(file):
+                string_status[i] = "Arduino can not programm mc"
+        else:
+          self.interface.closeSerial()
+          string_status = {0:"Arduino not answered right",1:"Arduino not answered right",2:"Arduino not answered right",3:"Arduino not answered right"}
+          return string_status
+        print("interface.reset()",self.interface.reset())
+        # self.interface.closeSerial()
+        return string_status
+
+      def startMotor(mode, value):
+        if mode == "dShot":
+          self.interface.setDShotMode()
+          self.interface.serial.write(b"\x0B\x01")
+          self.interface.sendValue(value)
+        elif mode == "PWM":
+          self.interface.setPWMMode()
+          self.interface.serial.write(b"\x0A\x01")
+          self.interface.sendValue(value)
+
+      def stopMotor(mode):
+        startMotor(mode, 0)
 
 
-        def onPushButton_2():
-            if self.ui.pushButton_2.isChecked():
-               startMotor(parametersApp.get("mode"), parametersApp.get(parametersApp.get("mode")),parametersApp.get("port"))
-            else:
-               print("offPushButton_2")
-               stopMotor(parametersApp.get("port"))
 
-        def changeSpinBox_dShot():
-            self.ui.horizontalSlider_dShot.setValue(self.ui.spinBox_dShot.value())
+      def onPushButton_change():
+          parametersApp["name"] = self.ui.lineEdit.text()
+          parametersApp["port"] = self.ui.comboBox.currentText()
+          parametersApp["dShot"] = str(self.ui.spinBox_dShot.value())
+          parametersApp["PWM"] = str(self.ui.spinBox_PWM.value())
+          if self.ui.radioButton_dShot.isChecked():
+              parametersApp["mode"] = "dShot"
+          else: parametersApp["mode"] = "PWM"
+          self.interface.__init__(parametersApp["port"])
+          # serial.setPortName(self.ui.comboBox.currentText())
+          # # serial.open(QIODevice.ReadWrite)
+          # print("serial.open",serial.open(QIODevice.ReadOnly))
 
-        def changeSpinBox_PWM():
-            self.ui.horizontalSlider_PWM.setValue(self.ui.spinBox_PWM.value())
 
-        def changehorizontalSlider_dShot():
-            self.ui.spinBox_dShot.setValue(self.ui.horizontalSlider_dShot.value())
+      def onPushButton_save():
+          f = open("save.txt", "w")
+          newS = ""
+          for s in parametersApp:
+              newS = newS + s + ": "+ parametersApp[s] + "\n"
+          f.write(newS)
+          f.close()
+          # # serial.close()
+          # print("serial.close",serial.close())
 
-        def changehorizontalSlider_PWM():
-            self.ui.spinBox_PWM.setValue(self.ui.horizontalSlider_PWM.value())
+      def onPushButton_1():
+          self.ui.label_1.setText("Прошивка")
+          self.ui.label_1.setStyleSheet("background-color: yellow; border: 1px solid black;")
+          self.ui.label_2.setText("Прошивка")
+          self.ui.label_2.setStyleSheet("background-color: yellow; border: 1px solid black;")
+          self.ui.label_3.setText("Прошивка")
+          self.ui.label_3.setStyleSheet("background-color: yellow; border: 1px solid black;")
+          self.ui.label_4.setText("Прошивка")
+          self.ui.label_4.setStyleSheet("background-color: yellow; border: 1px solid black;")
+          print("onPushButton_1")
+          sleep(0.001)
+          status = run(action = "write", destination = parametersApp.get("name"), port = parametersApp.get("port"))
+          print(status)
+          if status.get(0) == "Succes":
+              self.ui.label_1.setText("Прошито")
+              self.ui.label_1.setStyleSheet("background-color: green; border: 1px solid black;")
+          else:
+              self.ui.label_1.setText("Проблема")
+              self.ui.label_1.setStyleSheet("background-color: red; border: 1px solid black;") 
+          if status.get(1) == "Succes":
+              self.ui.label_2.setText("Прошито")
+              self.ui.label_2.setStyleSheet("background-color: green; border: 1px solid black;")
+          else:
+              self.ui.label_2.setText("Проблема")
+              self.ui.label_2.setStyleSheet("background-color: red; border: 1px solid black;") 
+          if status.get(2) == "Succes":
+              self.ui.label_3.setText("Прошито")
+              self.ui.label_3.setStyleSheet("background-color: green; border: 1px solid black;")
+          else:
+              self.ui.label_3.setText("Проблема")
+              self.ui.label_3.setStyleSheet("background-color: red; border: 1px solid black;") 
+          if status.get(3) == "Succes":
+              self.ui.label_4.setText("Прошито")
+              self.ui.label_4.setStyleSheet("background-color: green; border: 1px solid black;")
+          else:
+              self.ui.label_4.setText("Проблема")
+              self.ui.label_4.setStyleSheet("background-color: red; border: 1px solid black;") 
 
-        # serial.readyRead.connect(onRead)
-        self.ui.pushButton_change.clicked.connect(onPushButton_change)
-        self.ui.pushButton_save.clicked.connect(onPushButton_save)
-        self.ui.pushButton_1.clicked.connect(onPushButton_1)
-        self.ui.pushButton_2.clicked.connect(onPushButton_2)
-        
-        self.ui.spinBox_dShot.valueChanged.connect(changeSpinBox_dShot)
-        self.ui.spinBox_PWM.valueChanged.connect(changeSpinBox_PWM)
-        self.ui.horizontalSlider_dShot.valueChanged.connect(changehorizontalSlider_dShot)
-        self.ui.horizontalSlider_PWM.valueChanged.connect(changehorizontalSlider_PWM)
+
+      def onPushButton_2():
+          if self.ui.pushButton_2.isChecked():
+              startMotor(parametersApp.get("mode"), parametersApp.get(parametersApp.get("mode")))
+          else:
+              print("offPushButton_2")
+              stopMotor(parametersApp.get("mode"))
+
+      def changeSpinBox_dShot():
+          self.ui.horizontalSlider_dShot.setValue(self.ui.spinBox_dShot.value())
+
+      def changeSpinBox_PWM():
+          self.ui.horizontalSlider_PWM.setValue(self.ui.spinBox_PWM.value())
+
+      def changehorizontalSlider_dShot():
+          self.ui.spinBox_dShot.setValue(self.ui.horizontalSlider_dShot.value())
+
+      def changehorizontalSlider_PWM():
+          self.ui.spinBox_PWM.setValue(self.ui.horizontalSlider_PWM.value())
+
+      # serial.readyRead.connect(onRead)
+      self.ui.pushButton_change.clicked.connect(onPushButton_change)
+      self.ui.pushButton_save.clicked.connect(onPushButton_save)
+      self.ui.pushButton_1.clicked.connect(onPushButton_1)
+      self.ui.pushButton_2.clicked.connect(onPushButton_2)
+      
+      self.ui.spinBox_dShot.valueChanged.connect(changeSpinBox_dShot)
+      self.ui.spinBox_PWM.valueChanged.connect(changeSpinBox_PWM)
+      self.ui.horizontalSlider_dShot.valueChanged.connect(changehorizontalSlider_dShot)
+      self.ui.horizontalSlider_PWM.valueChanged.connect(changehorizontalSlider_PWM)
 
         
 
