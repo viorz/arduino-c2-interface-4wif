@@ -4,6 +4,7 @@
  */
 
 #include "C2.h"
+#include "../../src/arduino_dshot.h"
 
 C2::C2(volatile uint8_t *port, volatile uint8_t *ddr, volatile uint8_t *pin, uint8_t pinCk, uint8_t pinD, uint8_t pinLed) {
   _port = port;
@@ -504,6 +505,40 @@ void C2::loop() {
 
           Serial.write(0x89);
           Serial.write(_pinCk_num);
+        } break;
+
+        case Actions::IPWM: {
+          pwmSetup();
+        } break;
+
+        case Actions::IDSHOT: {
+          dshotSetup();
+        } break;
+
+        case Actions::PWM: {
+          uint16_t pwmValue;
+          for(uint8_t i=0; i < _message[1]; i++)
+          {
+            pwmValue = _message[2+i]<<(i*8);
+          }
+          UpdatePWM(pwmValue);
+        } break;
+
+        case Actions::DSHOT: {
+          uint16_t dshotValue;
+          for(uint8_t i=0; i < _message[1]; i++)
+          {
+            dshotValue = _message[2+i]<<(i*8);
+          }
+          UpdateDShot(dshotValue);
+        } break;
+
+        case Actions::RESPONSE: {
+          printResponse();
+        } break;
+
+        case Actions::C2MODE: {
+          disableMotor();
         } break;
       }
     }
