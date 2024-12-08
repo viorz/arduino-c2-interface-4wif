@@ -35,14 +35,20 @@ enum C2Devices {
 };
 
 enum Actions {
-  ACK   = 0x00,
-  INIT  = 0x01,
-  RESET = 0x02,
-  WRITE = 0x03,
-  ERASE = 0x04,
-  READ  = 0x05,
-  INFO  = 0x08,
-  CHANGE_CLK  = 0x09
+  ACK         = 0x00,
+  INIT        = 0x01,
+  RESET       = 0x02,
+  WRITE       = 0x03,
+  ERASE       = 0x04,
+  READ        = 0x05,
+  INFO        = 0x08,
+  CHANGE_CLK  = 0x09,
+  IPWM        = 0x0A,
+  IDSHOT      = 0x0B,
+  PWM         = 0x0C,
+  DSHOT       = 0x0D,
+  RESPONSE    = 0x0E,
+  C2MODE      = 0x0F
 };
 
 struct Device {

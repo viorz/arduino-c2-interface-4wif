@@ -13,7 +13,8 @@ import argparse
 from tokenize import String
 
 class ProgrammingInterface:
-  def __init__(self, port, baudrate = 1000000):
+  def __init__(self, port, baudrate = 9600):
+    # self.serial.close()
     self.serial = serial.Serial(port, baudrate, timeout = 1)
 
     # Give Arduino some time
@@ -21,6 +22,13 @@ class ProgrammingInterface:
 
   def closeSerial(self):
      self.serial.close()
+
+  def openSerial(self):
+     self.serial.open()
+
+  def changeSerial(self, port, baudrate = 9600):
+     self.serial.close()
+     self.serial = serial.Serial(port, baudrate, timeout = 1)
 
   def getReadRequest(slef, address, amount):
     return [
@@ -90,13 +98,14 @@ class ProgrammingInterface:
     print("b", b)
     b.extend(map(ord, value))
     self.serial.write(b)
-
+  
   def setC2Mode(self):
-    self.serial.write(b"\x01")
+    self.serial.write(b"\x0F\x00")
     rxdataa = self.serial.read(1)
-    print("C2 mode is set ", rxdataa)
-    # assert rxdataa == b"\x01"
-    if rxdataa != b"\x01": return False
+    print("C2 mode ", rxdataa)
+    # assert rxdataa == b"\x89"
+    if rxdataa != b"\x90": return False
+    print("C2 mode is enable")
     return True
 
   def setDShotMode(self):
@@ -170,7 +179,7 @@ class ProgrammingInterface:
       self.serial.write(data)
       response = self.serial.read(1)
       if response != b"\x83":
-          print("Error: Failed writing data")
+          print("Error: Failed writing data: ", response)
           return None
     self.reset()
     return True
@@ -406,7 +415,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
               if not self.interface.write(file):
                 string_status[i] = "Arduino can not programm mc"
         else:
-          self.interface.closeSerial()
+          # self.interface.closeSerial()
           string_status = {0:"Arduino not answered right",1:"Arduino not answered right",2:"Arduino not answered right",3:"Arduino not answered right"}
           return string_status
         print("interface.reset()",self.interface.reset())
@@ -415,16 +424,18 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
       def startMotor(mode, value):
         if mode == "dShot":
-          self.interface.setDShotMode()
-          self.interface.serial.write(b"\x0B\x01")
+          # self.interface.setDShotMode()
+          self.interface.serial.write(b"\x0B\x00")
+          self.interface.serial.write(b"\x0D\x01")
           self.interface.sendValue(value)
         elif mode == "PWM":
-          self.interface.setPWMMode()
-          self.interface.serial.write(b"\x0A\x01")
+          # self.interface.setPWMMode()
+          self.interface.serial.write(b"\x0A\x00")
+          self.interface.serial.write(b"\x0C\x01")
           self.interface.sendValue(value)
 
       def stopMotor(mode):
-        startMotor(mode, 0)
+        startMotor(mode, "0")
 
 
 
@@ -436,7 +447,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
           if self.ui.radioButton_dShot.isChecked():
               parametersApp["mode"] = "dShot"
           else: parametersApp["mode"] = "PWM"
-          self.interface.__init__(parametersApp["port"])
+          self.interface.changeSerial(parametersApp["port"])
+          # self.interface.__init__(parametersApp["port"])
           # serial.setPortName(self.ui.comboBox.currentText())
           # # serial.open(QIODevice.ReadWrite)
           # print("serial.open",serial.open(QIODevice.ReadOnly))
@@ -451,6 +463,12 @@ class ApplicationWindow(QtWidgets.QMainWindow):
           f.close()
           # # serial.close()
           # print("serial.close",serial.close())
+
+      def onPushButton_reset():
+          self.interface.closeSerial()
+          print("serial.close")
+          self.interface.openSerial()
+          print("serial.open")
 
       def onPushButton_1():
           self.ui.label_1.setText("Прошивка")
@@ -493,9 +511,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
       def onPushButton_2():
           if self.ui.pushButton_2.isChecked():
+              print("onPushButton_2: ", parametersApp.get("mode"), "  ", parametersApp.get(parametersApp.get("mode")))
               startMotor(parametersApp.get("mode"), parametersApp.get(parametersApp.get("mode")))
           else:
-              print("offPushButton_2")
+              print("offPushButton_2: ", parametersApp.get("mode"))
               stopMotor(parametersApp.get("mode"))
 
       def changeSpinBox_dShot():
@@ -513,6 +532,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
       # serial.readyRead.connect(onRead)
       self.ui.pushButton_change.clicked.connect(onPushButton_change)
       self.ui.pushButton_save.clicked.connect(onPushButton_save)
+      self.ui.pushButton_reset.clicked.connect(onPushButton_reset)
       self.ui.pushButton_1.clicked.connect(onPushButton_1)
       self.ui.pushButton_2.clicked.connect(onPushButton_2)
       

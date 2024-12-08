@@ -32,13 +32,14 @@ const FREQUENCY frequency = F500;
 bool enableEdt = false;
 
 // DSHOT Output pin
-// const uint8_t pinDshot = 13;
-// #define PIN_DISHOT_B_1  B00100000
-// #define PIN_DISHOT_B_0  B00000000
-const uint8_t pinDshot = 3;
-#define PIN_DISHOT_B_1  B00001000
+const uint8_t pinDshot = 13;
+#define PIN_DISHOT_B_1  B00100000
 #define PIN_DISHOT_B_0  B00000000
-#define PORT_DISHOT     PORTD
+#define PORT_DISHOT     PORTB
+// const uint8_t pinDshot = 3;
+// #define PIN_DISHOT_B_1  B00001000
+// #define PIN_DISHOT_B_0  B00000000
+// #define PORT_DISHOT     PORTD
 
 /**
  * If debug mode is enabled, more information is printed to the serial console:
@@ -630,8 +631,8 @@ void c2Setup() {
 }
 
 void setup() {
-  Serial.begin(1000000);
-  while(!Serial);
+  Serial.begin(9600);
+  while(!Serial){;}
   // while(!Serial.available());
   // uint8_t data = Serial.read();
   // switch(data) {

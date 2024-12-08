@@ -378,9 +378,11 @@ void C2::loop() {
       switch(_message[0]) {
         case Actions::ACK: {
           Serial.write(0x80);
+          resetState();
         } break;
 
         case Actions::INIT: {
+          Serial.write(0x81);
           init();
           deviceInfo();
 
@@ -393,7 +395,6 @@ void C2::loop() {
             } break;
           }
 
-          Serial.write(0x81);
           digitalWrite(_pinLed, HIGH);
 
           resetState();
@@ -421,6 +422,7 @@ void C2::loop() {
 
           if(crc != newcrc) {
             Serial.write(0x43);
+            resetState();
             break;
           }
 
@@ -509,36 +511,50 @@ void C2::loop() {
 
         case Actions::IPWM: {
           pwmSetup();
+          Serial.write(0x91);
+          resetState();
         } break;
 
         case Actions::IDSHOT: {
           dshotSetup();
+          Serial.write(0x92);
+          resetState();
         } break;
 
         case Actions::PWM: {
           uint16_t pwmValue;
           for(uint8_t i=0; i < _message[1]; i++)
           {
-            pwmValue = _message[2+i]<<(i*8);
+            pwmValue += (_message[2+i]-30)*(i*10);
+            // pwmValue = _message[2+i]<<(i*8);
           }
           UpdatePWM(pwmValue);
+          Serial.write(0x93);
+          resetState();
         } break;
 
         case Actions::DSHOT: {
           uint16_t dshotValue;
           for(uint8_t i=0; i < _message[1]; i++)
           {
-            dshotValue = _message[2+i]<<(i*8);
+            dshotValue += (_message[2+i]-30)*(i*10);
+            // dshotValue = _message[2+i]<<(i*8);
           }
           UpdateDShot(dshotValue);
+          Serial.write(0x94);
+          resetState();
         } break;
 
         case Actions::RESPONSE: {
           printResponse();
+          Serial.write(0x95);
+          resetState();
         } break;
 
         case Actions::C2MODE: {
           disableMotor();
+          Serial.write(0x90);
+          resetState();
         } break;
       }
     }
