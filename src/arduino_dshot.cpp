@@ -153,6 +153,7 @@ void sendInvertedDshot300Bit(uint8_t bit);
 void processTelemetryResponse();
 void readUpdate();
 void printResponse();
+void UpdateDShot(uint16_t dshotValue);
 
 void processTelemetryResponse() {
   // Set to Input in order to process the response - this will be at 3.3V level
@@ -376,6 +377,7 @@ void dshotSetup() {
   while(!Serial);
 
   pinMode(pinDshot, OUTPUT);
+  UpdateDShot(0);
 
   // Set the default signal Level
   #if inverted
@@ -399,6 +401,8 @@ void dshotSetup() {
     }
   #endif
 
+  pwmMode = false;
+  dShotMode = true;
   setupTimer();
 }
 
@@ -408,12 +412,16 @@ void pwmSetup() {
 
   pinMode(pinDshot, OUTPUT);
   frame = MIN_PWM_TIME_US;
+  dShotMode = false;
+  pwmMode = true;
   setupTimerPWM();
 
 }
 
 void disableMotor() {
-  frame = 0;
+  dShotMode = false;
+  pwmMode = false;
+  frame = MIN_PWM_TIME_US;
   pinMode(pinDshot, INPUT);
 }
 
@@ -631,7 +639,7 @@ void c2Setup() {
 }
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(1000000);
   while(!Serial){;}
   // while(!Serial.available());
   // uint8_t data = Serial.read();

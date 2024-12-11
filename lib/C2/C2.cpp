@@ -522,26 +522,43 @@ void C2::loop() {
         } break;
 
         case Actions::PWM: {
-          uint16_t pwmValue;
-          for(uint8_t i=0; i < _message[1]; i++)
-          {
-            pwmValue += (_message[2+i]-30)*(i*10);
-            // pwmValue = _message[2+i]<<(i*8);
-          }
-          UpdatePWM(pwmValue);
+          uint16_t pwmValue = 0;
           Serial.write(0x93);
+    
+          for (int i = 0; i < _message[1]; i++) 
+          {
+              pwmValue = pwmValue * 10 + (_message[2+i] - '0');
+          }
+
+          UpdatePWM(pwmValue);
+          // Serial.write(_message[0]);
+          // Serial.write(_message[1]);
+          // Serial.write(_message[2]);
+          // Serial.write(_message[3]);
+          // Serial.write(_message[4]);
+          // Serial.write(_message[5]);
+          // Serial.write(_message[6]);
+          // Serial.write(pwmValue);
           resetState();
         } break;
 
         case Actions::DSHOT: {
-          uint16_t dshotValue;
-          for(uint8_t i=0; i < _message[1]; i++)
+          uint16_t dshotValue = 0;
+          Serial.write(0x94);
+          
+          for (int i = 0; i < _message[1]; i++) 
           {
-            dshotValue += (_message[2+i]-30)*(i*10);
-            // dshotValue = _message[2+i]<<(i*8);
+              dshotValue = dshotValue * 10 + (_message[2+i] - '0');
           }
           UpdateDShot(dshotValue);
-          Serial.write(0x94);
+          // Serial.write(_message[0]);
+          // Serial.write(_message[1]);
+          // Serial.write(_message[2]);
+          // Serial.write(_message[3]);
+          // Serial.write(_message[4]);
+          // Serial.write(_message[5]);
+          // Serial.write(_message[6]);
+          // Serial.write(dshotValue);
           resetState();
         } break;
 
