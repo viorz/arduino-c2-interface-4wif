@@ -13,7 +13,7 @@ import argparse
 from tokenize import String
 
 class ProgrammingInterface:
-  def __init__(self, port, baudrate = 9600):
+  def __init__(self, port, baudrate = 1000000):
     # self.serial.close()
     self.serial = serial.Serial(port, baudrate, timeout = 1)
 
@@ -26,7 +26,7 @@ class ProgrammingInterface:
   def openSerial(self):
      self.serial.open()
 
-  def changeSerial(self, port, baudrate = 9600):
+  def changeSerial(self, port, baudrate = 1000000):
      self.serial.close()
      self.serial = serial.Serial(port, baudrate, timeout = 1)
 
@@ -44,6 +44,7 @@ class ProgrammingInterface:
     done = False
     while not done:
       try:
+        self.serial.read_all()
         self.serial.write(b"\x01\x00")
         result = self.serial.read(1)
         if result != b"\x81": print("Error: ", result)
@@ -63,6 +64,7 @@ class ProgrammingInterface:
     return True
 
   def read(self, file, start=0x00, size=0x3FFF, chunksize=0x10):
+    self.serial.read_all()
     for address in range(start, start + size, chunksize):
       # Write request and wait for response
       request = self.getReadRequest(address, chunksize)
@@ -94,12 +96,38 @@ class ProgrammingInterface:
     return True
 
   def sendValue(self, value):
+    self.serial.read_all()
     b = bytearray()
     print("b", b)
     b.extend(map(ord, value))
     self.serial.write(b)
+
+  def sendValueMotor(self, mode, value):
+    self.serial.read_all()
+    if mode == "dShot":
+      self.serial.write(b"\x0D")
+    elif mode == "PWM":
+      self.serial.write(b"\x0C")
+    num = len(value)
+    b = num.to_bytes(1, 'big')
+    self.serial.write(b)
+    b = bytearray()
+    b.extend(map(ord, value))
+    self.serial.write(b)
+    print("send b ", b)
+    print(self.serial.read(1))
+    
+    # print(self.serial.read(1))
+    # print(self.serial.read(1))
+    # print(self.serial.read(1))
+    # print(self.serial.read(1))
+    # print(self.serial.read(1))
+    # print(self.serial.read(1))
+    # print(self.serial.read(1))
+    # print(int.from_bytes(self.serial.read_all(), "big"))
   
   def setC2Mode(self):
+    self.serial.read_all()
     self.serial.write(b"\x0F\x00")
     rxdataa = self.serial.read(1)
     print("C2 mode ", rxdataa)
@@ -109,22 +137,25 @@ class ProgrammingInterface:
     return True
 
   def setDShotMode(self):
-    self.serial.write(b"\x02")
+    self.serial.read_all()
+    self.serial.write(b"\x0B\x00")
     rxdataa = self.serial.read(1)
     print("dShot mode is set ", rxdataa)
     # assert rxdataa == b"\x02"
-    if rxdataa != b"\x02": return False
+    if rxdataa != b"\x92": return False
     return True
 
   def setPWMMode(self):
-    self.serial.write(b"\x03")
+    self.serial.read_all()
+    self.serial.write(b"\x0A\x00")
     rxdataa = self.serial.read(1)
     print("PWM mode is set ", rxdataa)
     # assert rxdataa == b"\x03"
-    if rxdataa != b"\x03": return False
+    if rxdataa != b"\x91": return False
     return True
   
   def changeClk(self, i):
+    self.serial.read_all()
     self.serial.write(b"\x09\x01")
     iList = bytes([i])
     self.serial.write(iList)
@@ -137,6 +168,7 @@ class ProgrammingInterface:
     return True
 
   def erase(self):
+    self.serial.read_all()
     self.serial.write(b"\x04\x00")
     # assert self.serial.read(1) == b"\x84"
     if self.serial.read(1) != b"\x84": return False
@@ -144,12 +176,14 @@ class ProgrammingInterface:
     return True
 
   def reset(self):
+    self.serial.read_all()
     self.serial.write(b"\x02\x00")
     # assert self.serial.read(1) == b"\x82"
     if self.serial.read(1) != b"\x82": return False
     return True
 
   def write(self, file):
+    self.serial.read_all()
     lines = file.readlines()
     for line in lines:
       # assert line[0] == ":"
@@ -186,6 +220,7 @@ class ProgrammingInterface:
 
 
   def deviceInfo(self):
+    self.serial.read_all()
     self.serial.write(b"\x08\x00")
     # assert self.serial.read(1) == b"\x88"
     if self.serial.read(1) != b"\x88": return False
@@ -417,25 +452,37 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         else:
           # self.interface.closeSerial()
           string_status = {0:"Arduino not answered right",1:"Arduino not answered right",2:"Arduino not answered right",3:"Arduino not answered right"}
+          onPushButton_reset()
           return string_status
         print("interface.reset()",self.interface.reset())
         # self.interface.closeSerial()
+        succes_prgrm = True
+        for i in range(4):
+          if string_status[i] != "Succes":
+            succes_prgrm = False
+        if not succes_prgrm:
+          onPushButton_reset()
         return string_status
 
-      def startMotor(mode, value):
+      def setModeMotor(mode):
         if mode == "dShot":
-          # self.interface.setDShotMode()
-          self.interface.serial.write(b"\x0B\x00")
-          self.interface.serial.write(b"\x0D\x01")
-          self.interface.sendValue(value)
+          self.interface.setDShotMode()
         elif mode == "PWM":
-          # self.interface.setPWMMode()
-          self.interface.serial.write(b"\x0A\x00")
-          self.interface.serial.write(b"\x0C\x01")
-          self.interface.sendValue(value)
+          self.interface.setPWMMode()
+
+      def startMotor(mode, value):
+        # if mode == "dShot":
+        #   self.interface.setDShotMode()
+        # elif mode == "PWM":
+        #   self.interface.setPWMMode()
+        # sleep(1)
+        self.interface.sendValueMotor(mode, value)
 
       def stopMotor(mode):
-        startMotor(mode, "0")
+        if mode == "dShot":
+          self.interface.sendValueMotor(mode, "0")
+        elif mode == "PWM":
+          self.interface.sendValueMotor(mode, "0")
 
 
 
@@ -448,6 +495,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
               parametersApp["mode"] = "dShot"
           else: parametersApp["mode"] = "PWM"
           self.interface.changeSerial(parametersApp["port"])
+          setModeMotor(parametersApp.get("mode"))
           # self.interface.__init__(parametersApp["port"])
           # serial.setPortName(self.ui.comboBox.currentText())
           # # serial.open(QIODevice.ReadWrite)
@@ -469,6 +517,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
           print("serial.close")
           self.interface.openSerial()
           print("serial.open")
+          sleep(2)
+          setModeMotor(parametersApp.get("mode"))
 
       def onPushButton_1():
           self.ui.label_1.setText("Прошивка")
@@ -507,11 +557,13 @@ class ApplicationWindow(QtWidgets.QMainWindow):
           else:
               self.ui.label_4.setText("Проблема")
               self.ui.label_4.setStyleSheet("background-color: red; border: 1px solid black;") 
+          setModeMotor(parametersApp.get("mode"))
 
 
       def onPushButton_2():
           if self.ui.pushButton_2.isChecked():
               print("onPushButton_2: ", parametersApp.get("mode"), "  ", parametersApp.get(parametersApp.get("mode")))
+              setModeMotor(parametersApp.get("mode"))
               startMotor(parametersApp.get("mode"), parametersApp.get(parametersApp.get("mode")))
           else:
               print("offPushButton_2: ", parametersApp.get("mode"))
@@ -540,6 +592,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
       self.ui.spinBox_PWM.valueChanged.connect(changeSpinBox_PWM)
       self.ui.horizontalSlider_dShot.valueChanged.connect(changehorizontalSlider_dShot)
       self.ui.horizontalSlider_PWM.valueChanged.connect(changehorizontalSlider_PWM)
+
+      setModeMotor(parametersApp.get("mode"))
 
         
 
