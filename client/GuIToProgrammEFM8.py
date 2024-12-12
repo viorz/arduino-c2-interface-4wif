@@ -344,7 +344,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
       ports = QSerialPortInfo.availablePorts()
       for port in ports:
           portList.append(port.portName())
-          print("port: ",port.description())
           if port.description() == "Arduino Uno":
               parametersApp["port"] = port.portName()
           if port.description() == "USB-SERIAL CH340":
@@ -463,8 +462,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         for i in range(4):
           if string_status[i] != "Succes":
             succes_prgrm = False
-        if not succes_prgrm:
-          onPushButton_reset()
+        # if not succes_prgrm:
+        #   onPushButton_reset()
         return string_status
 
       def setModeMotor(mode):
