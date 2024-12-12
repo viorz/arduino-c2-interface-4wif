@@ -344,7 +344,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
       ports = QSerialPortInfo.availablePorts()
       for port in ports:
           portList.append(port.portName())
+          print("port: ",port.description())
           if port.description() == "Arduino Uno":
+              parametersApp["port"] = port.portName()
+          if port.description() == "USB-SERIAL CH340":
               parametersApp["port"] = port.portName()
       self.ui.comboBox.addItems(portList)
 

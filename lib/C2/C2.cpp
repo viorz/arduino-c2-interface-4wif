@@ -41,8 +41,11 @@ void C2::init() {
   // Enable programming
   writeAddress(FPCTL);
   writeData(0x02);
+  if (flag_error_comunication) return;
   writeData(0x04);
+  if (flag_error_comunication) return;
   writeData(0x01);
+  if (flag_error_comunication) return;
 
   // Wait at lesat 20ms
   delayMicroseconds(30);
@@ -68,9 +71,11 @@ void C2::reset() {
 void C2::deviceInfo() {
   writeAddress(C2Addresses::DEVICEID);
   device.id = readData();
+  if (flag_error_comunication) return;
 
   writeAddress(C2Addresses::REVID);
   device.revision = readData();
+  if (flag_error_comunication) return;
 }
 
 void C2::writeAddress(uint8_t address) {
@@ -82,6 +87,7 @@ void C2::writeAddress(uint8_t address) {
 void C2::writeSfr(uint8_t address, uint8_t data) {
   writeAddress(address);
   writeData(data);
+  if (flag_error_comunication) return;
 }
 
 uint8_t C2::readBits(uint8_t length) {
@@ -176,7 +182,13 @@ uint8_t C2::readAddress() {
 void C2::writeData(uint8_t data) {
   sendDataWriteInstruction(1);
   sendByte(data);
-  while (readBits(1) == 0) {}
+  unsigned long startTime = millis();
+  while (readBits(1) == 0) {
+    if (millis() - startTime >= 100) {
+      flag_error_comunication = true;
+      return;
+    }
+  }
   sendStopBit();
 }
 
@@ -185,13 +197,20 @@ void C2::writeData(uint8_t data) {
  * of 0 bits. The next 8 bit after the first one are the response byte.
  */
 uint8_t C2::waitForResponse() {
-  while(readBits(1) == 0) {}
+  unsigned long startTime = millis();
+  while(readBits(1) == 0) {
+    if (millis() - startTime >= 100) {
+      flag_error_comunication = true;
+      return 0;
+    }
+  }
   return readBits(8);
 }
 
 uint8_t C2::readData() {
   sendDataReadInstruction(1);
   uint8_t response = waitForResponse();
+  if (flag_error_comunication) return 0;
   sendStopBit();
 
   return response;
@@ -200,7 +219,12 @@ uint8_t C2::readData() {
 uint8_t C2::pollBitHigh(uint8_t mask) {
   uint8_t retval;
 
+  unsigned long startTime = millis();
   do {
+    if (millis() - startTime >= 100) {
+      flag_error_comunication = true;
+      break;
+    }
     retval = readAddress();
   } while ((retval & mask) == 0);
 
@@ -210,7 +234,12 @@ uint8_t C2::pollBitHigh(uint8_t mask) {
 uint8_t C2::pollBitLow(uint8_t mask) {
   uint8_t retval;
 
+  unsigned long startTime = millis();
   do {
+    if (millis() - startTime >= 100) {
+      flag_error_comunication = true;
+      break;
+    }
     retval = readAddress();
   } while (retval & mask);
 
@@ -220,32 +249,46 @@ uint8_t C2::pollBitLow(uint8_t mask) {
 uint8_t C2::readFlashBlock(uint16_t address, uint8_t *data, uint8_t bytes) {
   writeAddress(C2Addresses::FPDAT);
   writeData(BLOCK_READ);
+  if (flag_error_comunication) return 0;
 
   pollBitLow(_inBusy);
+  if (flag_error_comunication) return 0;
   pollBitHigh(_outReady);
+  if (flag_error_comunication) return 0;
 
   uint8_t value = readData();
+  if (flag_error_comunication) return 0;
   if(value != 0x0D) {
     return EXIT_FAILURE;
   }
 
   // Write high byte of address
   writeData(address >> 8);
+  if (flag_error_comunication) return 0;
   pollBitLow(_inBusy);
+  if (flag_error_comunication) return 0;
 
   // Write low byte of address
   writeData(address & 0xFF);
+  if (flag_error_comunication) return 0;
   pollBitLow(_inBusy);
+  if (flag_error_comunication) return 0;
 
   writeData(bytes);
+  if (flag_error_comunication) return 0;
   pollBitLow(_inBusy);
+  if (flag_error_comunication) return 0;
   pollBitHigh(_outReady);
+  if (flag_error_comunication) return 0;
 
   readData();
+  if (flag_error_comunication) return 0;
 
   for(uint8_t i = 0; i < bytes; i += 1) {
     pollBitHigh(_outReady);
+  if (flag_error_comunication) return 0;
     data[i] = readData();
+    if (flag_error_comunication) return 0;
   }
 
   return EXIT_SUCCESS;
@@ -254,33 +297,47 @@ uint8_t C2::readFlashBlock(uint16_t address, uint8_t *data, uint8_t bytes) {
 uint8_t C2::writeFlashBlock(uint16_t address, uint8_t *data, uint8_t length) {
   writeAddress(FPDAT);
   writeData(BLOCK_WRITE);
+  if (flag_error_comunication) return 0;
 
   pollBitLow(_inBusy);
+  if (flag_error_comunication) return 0;
   pollBitHigh(_outReady);
+  if (flag_error_comunication) return 0;
 
   uint8_t value = readData();
+  if (flag_error_comunication) return 0;
   if(value != 0x0D) {
     return EXIT_FAILURE;
   }
 
   // Write high byte of address
   writeData(address >> 8);
+  if (flag_error_comunication) return 0;
   pollBitLow(_inBusy);
+  if (flag_error_comunication) return 0;
 
   // Write low byte of address
   writeData(address & 0xFF);
+  if (flag_error_comunication) return 0;
   pollBitLow(_inBusy);
+  if (flag_error_comunication) return 0;
 
   writeData(length);
+  if (flag_error_comunication) return 0;
   pollBitLow(_inBusy);
+  if (flag_error_comunication) return 0;
 
   for(uint8_t i = 0; i < length; i += 1) {
     writeData(data[i]);
+    if (flag_error_comunication) return 0;
     pollBitLow(_inBusy);
+  if (flag_error_comunication) return 0;
   }
   pollBitHigh(_outReady);
+  if (flag_error_comunication) return 0;
 
   value = readData();
+  if (flag_error_comunication) return 0;
   if(value != 0x0D) {
     return EXIT_FAILURE;
   }
@@ -291,26 +348,38 @@ uint8_t C2::writeFlashBlock(uint16_t address, uint8_t *data, uint8_t length) {
 uint8_t C2::eraseDevice() {
   writeAddress(FPDAT);
   writeData(DEVICE_ERASE);
+  if (flag_error_comunication) return 0;
 
   pollBitLow(_inBusy);
+  if (flag_error_comunication) return 0;
   pollBitHigh(_outReady);
+  if (flag_error_comunication) return 0;
 
   uint8_t value = readData();
+  if (flag_error_comunication) return 0;
   if(value != 0x0D) {
     return EXIT_FAILURE;
   }
 
   writeData(0xDE);
+  if (flag_error_comunication) return 0;
   pollBitLow(_inBusy);
+  if (flag_error_comunication) return 0;
 
   writeData(0xAD);
+  if (flag_error_comunication) return 0;
   pollBitLow(_inBusy);
+  if (flag_error_comunication) return 0;
 
   writeData(0xA5);
+  if (flag_error_comunication) return 0;
   pollBitLow(_inBusy);
+  if (flag_error_comunication) return 0;
   pollBitHigh(_outReady);
+  if (flag_error_comunication) return 0;
 
   value = readData();
+  if (flag_error_comunication) return 0;
   if(value != 0x0D) {
     return EXIT_FAILURE;
   }
@@ -324,6 +393,7 @@ uint8_t C2::getState() {
 
 void C2::resetState() {
   _state = 0;
+  flag_error_comunication = false;
 }
 
 uint8_t C2::updateState(uint8_t data) {
@@ -384,14 +454,34 @@ void C2::loop() {
         case Actions::INIT: {
           Serial.write(0x81);
           init();
+          if (flag_error_comunication) {
+            Serial.write(0x44);
+            resetState();
+            break;
+          }
           deviceInfo();
+          if (flag_error_comunication) {
+            Serial.write(0x44);
+            resetState();
+            break;
+          }
 
           switch(device.id) {
             case C2Devices::EFM8BB1:
             case C2Devices::EFM8BB2: {
               writeSfr(0xFF, 0x80);
+              if (flag_error_comunication) {
+                Serial.write(0x44);
+                resetState();
+                break;
+              }
               delayMicroseconds(5);
               writeSfr(0xEF, 0x02);
+              if (flag_error_comunication) {
+                Serial.write(0x44);
+                resetState();
+                break;
+              }
             } break;
           }
 
@@ -428,6 +518,12 @@ void C2::loop() {
 
           uint8_t ch = _message[2];
           writeFlashBlock(address, _flashBuffer, ch);
+          if (flag_error_comunication) {
+            Serial.write(0x44);
+            resetState();
+            break;
+          }
+          
           Serial.write(0x83);
 
           resetState();
@@ -435,6 +531,11 @@ void C2::loop() {
 
         case Actions::ERASE: {
           eraseDevice();
+          if (flag_error_comunication) {
+            Serial.write(0x44);
+            resetState();
+            break;
+          }
           resetState();
 
           Serial.write(0x84);
@@ -448,6 +549,11 @@ void C2::loop() {
 
           address = addressPart1 | addressPart2 | addressPart3;
           readFlashBlock(address, _flashBuffer, byteCount);
+          if (flag_error_comunication) {
+            Serial.write(0x44);
+            resetState();
+            break;
+          }
           resetState();
 
           Serial.write(0x85);

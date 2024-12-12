@@ -127,6 +127,8 @@ class C2 {
     uint8_t _flashBuffer[300];
 
     Device device;
+
+    bool flag_error_comunication = false;
 };
 
 #endif
