@@ -6,6 +6,13 @@
 #include "C2.h"
 #include "../../src/arduino_dshot.h"
 
+#define WAITING_TIME 900
+#define INIT_WAIT_US 30//30       // Wait at lesat 20ms
+#define AFTER_INIT_WAIT_US 5//5
+#define RESET_LOW_WAIT_US 30//30  // Force CK LOW for at least 20us
+#define RESET_HIGH_WAIT_US 5//5  // Wait at least 2us
+#define CLK_US 2//2              // Force low for 80ns - 5000ns
+
 C2::C2(volatile uint8_t *port, volatile uint8_t *ddr, volatile uint8_t *pin, uint8_t pinCk, uint8_t pinD, uint8_t pinLed) {
   _port = port;
   _ddr = ddr;
@@ -48,7 +55,7 @@ void C2::init() {
   if (flag_error_comunication) return;
 
   // Wait at lesat 20ms
-  delayMicroseconds(30);
+  delayMicroseconds(INIT_WAIT_US);
 }
 
 /**
@@ -59,13 +66,13 @@ void C2::init() {
 void C2::reset() {
   // Force CK LOW for at least 20us
   *_port &= ~(1 << _pinCk);
-  delayMicroseconds(30);
+  delayMicroseconds(RESET_LOW_WAIT_US);
 
   //Force CK HIGH
   *_port |= (1 << _pinCk);
 
   // Wait at least 2us
-  delayMicroseconds(5);
+  delayMicroseconds(RESET_HIGH_WAIT_US);
 }
 
 void C2::deviceInfo() {
@@ -94,6 +101,7 @@ uint8_t C2::readBits(uint8_t length) {
   uint8_t mask = 0x01 << (length - 1);
   uint8_t data = 0;
 
+  // delayMicroseconds(CLK_US);
   *_ddr &= ~(1 << _pinD);
   *_pin &= (1 << _pinD);
   for (uint8_t i = 0; i < length; i += 1) {
@@ -153,12 +161,14 @@ void C2::sendBits(uint8_t data, uint8_t length) {
 void C2::clockPulse() {
   noInterrupts();
 
+  // delayMicroseconds(CLK_US);
   // Force low for 80ns - 5000ns
   *_port &= ~(1 << _pinCk);
-  delayMicroseconds(2);
+  // delayMicroseconds(CLK_US);
 
   // Force high for at least 120ns
   *_port |= (1 << _pinCk);
+  // delayMicroseconds(CLK_US);
 
   interrupts();
 }
@@ -182,9 +192,11 @@ uint8_t C2::readAddress() {
 void C2::writeData(uint8_t data) {
   sendDataWriteInstruction(1);
   sendByte(data);
+  
+  // delayMicroseconds(10);
   unsigned long startTime = millis();
   while (readBits(1) == 0) {
-    if (millis() - startTime >= 100) {
+    if (millis() - startTime >= WAITING_TIME) {
       flag_error_comunication = true;
       return;
     }
@@ -197,9 +209,11 @@ void C2::writeData(uint8_t data) {
  * of 0 bits. The next 8 bit after the first one are the response byte.
  */
 uint8_t C2::waitForResponse() {
+  
+  // delayMicroseconds(10);
   unsigned long startTime = millis();
   while(readBits(1) == 0) {
-    if (millis() - startTime >= 100) {
+    if (millis() - startTime >= WAITING_TIME) {
       flag_error_comunication = true;
       return 0;
     }
@@ -219,9 +233,10 @@ uint8_t C2::readData() {
 uint8_t C2::pollBitHigh(uint8_t mask) {
   uint8_t retval;
 
+  // delayMicroseconds(10);
   unsigned long startTime = millis();
   do {
-    if (millis() - startTime >= 100) {
+    if (millis() - startTime >= WAITING_TIME) {
       flag_error_comunication = true;
       break;
     }
@@ -234,9 +249,10 @@ uint8_t C2::pollBitHigh(uint8_t mask) {
 uint8_t C2::pollBitLow(uint8_t mask) {
   uint8_t retval;
 
+  // delayMicroseconds(10);
   unsigned long startTime = millis();
   do {
-    if (millis() - startTime >= 100) {
+    if (millis() - startTime >= WAITING_TIME) {
       flag_error_comunication = true;
       break;
     }
@@ -475,7 +491,7 @@ void C2::loop() {
                 resetState();
                 break;
               }
-              delayMicroseconds(5);
+              delayMicroseconds(AFTER_INIT_WAIT_US);
               writeSfr(0xEF, 0x02);
               if (flag_error_comunication) {
                 Serial.write(0x44);
