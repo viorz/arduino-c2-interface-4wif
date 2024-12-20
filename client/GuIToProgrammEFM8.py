@@ -527,7 +527,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
               parametersApp["mode"] = "dShot"
           else: parametersApp["mode"] = "PWM"
           self.interface.changeSerial(parametersApp["port"])
-          setModeMotor(parametersApp.get("mode"))
+          # setModeMotor(parametersApp.get("mode"))
           # self.interface.__init__(parametersApp["port"])
           # serial.setPortName(self.ui.comboBox.currentText())
           # # serial.open(QIODevice.ReadWrite)
@@ -550,7 +550,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
           self.interface.openSerial()
           print("serial.open")
           sleep(2)
-          setModeMotor(parametersApp.get("mode"))
+          # setModeMotor(parametersApp.get("mode"))
 
       def onPushButton_1():
           self.ui.label_1.setText("Прошивка")
@@ -589,13 +589,14 @@ class ApplicationWindow(QtWidgets.QMainWindow):
           else:
               self.ui.label_4.setText("Проблема")
               self.ui.label_4.setStyleSheet("background-color: red; border: 1px solid black;") 
-          setModeMotor(parametersApp.get("mode"))
+          # setModeMotor(parametersApp.get("mode"))
 
 
       def onPushButton_2():
           if self.ui.pushButton_2.isChecked():
               print("onPushButton_2: ", parametersApp.get("mode"), "  ", parametersApp.get(parametersApp.get("mode")))
               setModeMotor(parametersApp.get("mode"))
+              sleep(2)
               startMotor(parametersApp.get("mode"), parametersApp.get(parametersApp.get("mode")))
           else:
               print("offPushButton_2: ", parametersApp.get("mode"))
@@ -625,7 +626,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
       self.ui.horizontalSlider_dShot.valueChanged.connect(changehorizontalSlider_dShot)
       self.ui.horizontalSlider_PWM.valueChanged.connect(changehorizontalSlider_PWM)
 
-      setModeMotor(parametersApp.get("mode"))
+      # setModeMotor(parametersApp.get("mode"))
 
         
 
