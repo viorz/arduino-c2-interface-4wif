@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets, uic
+from PyQt5 import QtWidgets, QtGui, uic
 from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
 from PyQt5.QtCore import QIODevice, QPointF, Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow, QAbstractItemView, QMessageBox
@@ -363,6 +363,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
       super(ApplicationWindow, self).__init__(*args, **kwargs)
       self.ui = uic.loadUi("GuIToProgrammEFM8.ui", self)
       self.ui.setWindowTitle("GuIToProgrammEFM8")
+      self.ui.setWindowIcon(QtGui.QIcon('CSky logo.ico'))
       # self.ui.setGeometry(300, 250, 1000, 1200)
 
       parametersApp = {}

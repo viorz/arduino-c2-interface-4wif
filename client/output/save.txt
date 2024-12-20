@@ -1,0 +1,5 @@
+port: COM5
+name: J_H_40_REV16_7.HEX
+mode: dShot
+dShot: 200
+PWM: 1200

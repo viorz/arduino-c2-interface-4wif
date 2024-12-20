@@ -22,7 +22,7 @@
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
-        <string>Tab 1</string>
+        <string>Проверка</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
@@ -147,7 +147,7 @@
       </widget>
       <widget class="QWidget" name="tab_2">
        <attribute name="title">
-        <string>Tab 2</string>
+        <string>Настройки</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
@@ -308,7 +308,7 @@
       </widget>
       <widget class="QWidget" name="tab_3">
        <attribute name="title">
-        <string>Tab_3</string>
+        <string>Сброс</string>
        </attribute>
        <widget class="QPushButton" name="pushButton_reset">
         <property name="geometry">
@@ -320,7 +320,7 @@
          </rect>
         </property>
         <property name="text">
-         <string>Reset</string>
+         <string>Сброс</string>
         </property>
        </widget>
       </widget>
